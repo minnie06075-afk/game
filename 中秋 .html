@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中秋碎月祝福</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* 防止滾動條 */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000; /* 初始背景為黑色夜空 */
+        }
+        canvas {
+            touch-action: manipulation; /* 禁用瀏覽器預設的觸控行為，例如雙擊縮放 */
+            -webkit-user-select: none; /* 禁用iOS長按選取 */
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            display: block; /* 移除canvas底部的小空隙 */
+        }
+        #blessing-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            opacity: 0; /* 預設隱藏 */
+            transition: opacity 1.5s ease-in-out; /* 淡入效果 */
+            z-index: 10;
+            pointer-events: none; /* 讓點擊穿透到 canvas */
+        }
+        #blessing-container.show {
+            opacity: 1;
+        }
+        #blessing-container img {
+            max-width: 150px; /* 調整 Logo 大小 */
+            height: auto;
+            margin-bottom: 20px;
+            transform: translateY(-50px); /* 初始位置偏上，模擬下落 */
+            transition: transform 1s ease-out;
+        }
+        #blessing-container.show img {
+            transform: translateY(0); /* 落到最終位置 */
+        }
+        #blessing-container p {
+            font-family: 'Noto Sans CJK TC', 'Microsoft YaHei', sans-serif; /* 推薦使用思源黑體或微軟雅黑 */
+            font-size: 2.2em; /* 祝福語大小 */
+            color: #FFD700; /* 金色文字 */
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+            margin: 0;
+            line-height: 1.5;
+            transform: translateY(50px); /* 初始位置偏下，模擬上升 */
+            transition: transform 1s ease-out;
+        }
+        #blessing-container.show p {
+            transform: translateY(0); /* 上升到最終位置 */
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="blessing-container">
+        <img id="companyLogo" src="your_company_logo.png" alt="公司 Logo">
+        <p>中秋快樂，人月兩團圓！</p>
+        <p>心繫團圓，月滿中秋。</p>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const blessingContainer = document.getElementById('blessing-container');
+    const companyLogo = document.getElementById('companyLogo');
+
+    let moonImage = new Image();
+    moonImage.src = 'full_moon.png'; // 請替換成您的月亮圖片，最好是圓形的，背景透明
+    
+    // 確保圖片在遊戲邏輯啟動前載入
+    let imagesLoaded = 0;
+    const totalImages = 2; // 月亮圖片 + Logo 圖片
+
+    moonImage.onload = () => {
+        imagesLoaded++;
+        checkAllImagesLoaded();
+    };
+    companyLogo.onload = () => { // 雖然 Logo 是 HTML 元素，但為了確保 JS 能準確讀取其大小，也納入載入檢查
+        imagesLoaded++;
+        checkAllImagesLoaded();
+    };
+
+    function checkAllImagesLoaded() {
+        if (imagesLoaded === totalImages) {
+            initCanvasAndGame();
+        }
+    }
+
+    let gameStarted = false;
+    let particles = [];
+    const NUM_PARTICLES = 100; // 碎片數量
+    const PARTICLE_SIZE_RANGE = [5, 20]; // 碎片大小範圍
+
+    // 初始化 Canvas 尺寸
+    function initCanvasAndGame() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // 監聽點擊事件
+        canvas.addEventListener('click', handleClick);
+        canvas.addEventListener('touchstart', handleClick, { passive: false }); // for mobile
+        
+        drawInitialMoon();
+        gameStarted = true;
+    }
+
+    // 繪製初始月亮畫面
+    function drawInitialMoon() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#0a0a2a'; // 深邃夜空藍
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 繪製月亮
+        const moonSize = Math.min(canvas.width, canvas.height) * 0.6; // 月亮大小
+        const moonX = (canvas.width - moonSize) / 2;
+        const moonY = (canvas.height - moonSize) / 2;
+
+        if (moonImage.complete && moonImage.naturalWidth !== 0) {
+            // 使用drawImage繪製月亮，如果月亮圖片不是正圓，可能需要裁剪或調整尺寸
+            ctx.drawImage(moonImage, moonX, moonY, moonSize, moonSize);
+        } else {
+            // 如果圖片載入失敗，繪製一個替代圓形
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, moonSize / 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'gold';
+            ctx.shadowColor = 'gold';
+            ctx.shadowBlur = 20;
+            ctx.fill();
+            ctx.shadowBlur = 0; // 清除陰影
+        }
+
+        // 繪製月亮上的裂紋 (簡化版，可在圖片中預先製作)
+        // 例如，可以在月亮圖片上預先設計好紋理，這裡就不再額外繪製
+    }
+
+    // 點擊事件處理
+    function handleClick(e) {
+        if (!gameStarted) return;
+        gameStarted = false; // 防止重複點擊
+
+        // 播放碎裂音效 (如果您有音效檔)
+        // const shatterSound = new Audio('shatter.mp3'); 
+        // shatterSound.play();
+
+        const clickX = e.clientX || e.touches[0].clientX;
+        const clickY = e.clientY || e.touches[0].clientY;
+
+        generateParticles(clickX, clickY); // 從點擊處生成粒子
+        animateShatter(); // 開始碎裂動畫
+    }
+
+    // 生成碎片粒子
+    function generateParticles(centerX, centerY) {
+        for (let i = 0; i < NUM_PARTICLES; i++) {
+            const size = Math.random() * (PARTICLE_SIZE_RANGE[1] - PARTICLE_SIZE_RANGE[0]) + PARTICLE_SIZE_RANGE[0];
+            const angle = Math.random() * Math.PI * 2; // 0到360度
+            const speed = Math.random() * 5 + 2; // 碎片飛散速度
+            
+            particles.push({
+                x: centerX,
+                y: centerY,
+                size: size,
+                color: `hsl(${Math.random() * 30 + 30}, 80%, 70%)`, // 金色調
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                alpha: 1, // 透明度
+                gravity: 0.1, // 重力
+                rotation: Math.random() * Math.PI * 2, // 初始旋轉
+                rotationSpeed: (Math.random() - 0.5) * 0.1 // 旋轉速度
+            });
+        }
+    }
+
+    // 碎裂動畫
+    function animateShatter() {
+        let animationFrame;
+        let fadeOutProgress = 0; // 月亮淡出進度
+
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0a0a2a'; // 深邃夜空藍
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 繪製逐漸淡出的月亮
+            if (fadeOutProgress < 1) {
+                const moonSize = Math.min(canvas.width, canvas.height) * 0.6;
+                const moonX = (canvas.width - moonSize) / 2;
+                const moonY = (canvas.height - moonSize) / 2;
+
+                ctx.save();
+                ctx.globalAlpha = 1 - fadeOutProgress; // 根據進度調整透明度
+                if (moonImage.complete && moonImage.naturalWidth !== 0) {
+                    ctx.drawImage(moonImage, moonX, moonY, moonSize, moonSize);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(canvas.width / 2, canvas.height / 2, moonSize / 2, 0, Math.PI * 2);
+                    ctx.fillStyle = 'gold';
+                    ctx.fill();
+                }
+                ctx.restore();
+                fadeOutProgress += 0.02; // 淡出速度
+            }
+
+            // 更新並繪製碎片
+            for (let i = 0; i < particles.length; i++) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += p.gravity; // 加入重力效果
+                p.alpha -= 0.01; // 碎片逐漸淡出
+                p.rotation += p.rotationSpeed; // 碎片旋轉
+
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    i--;
+                    continue;
+                }
+
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.rotation);
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size); // 方形碎片
+                ctx.restore();
+            }
+
+            if (particles.length > 0) {
+                animationFrame = requestAnimationFrame(update);
+            } else {
+                // 所有碎片消失後，顯示祝福語
+                cancelAnimationFrame(animationFrame);
+                showBlessing();
+            }
+        }
+        animationFrame = requestAnimationFrame(update);
+    }
+
+    // 顯示祝福語
+    function showBlessing() {
+        // 清空 Canvas 內容，只保留背景色
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#0a0a2a'; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        blessingContainer.classList.add('show');
+    }
+
+    // 當視窗大小改變時，重新初始化 Canvas (響應式設計)
+    window.addEventListener('resize', () => {
+        if (!blessingContainer.classList.contains('show')) { // 如果還沒顯示祝福語，才重新繪製月亮
+            initCanvasAndGame();
+        } else { // 如果已經顯示祝福語，保持其位置
+             canvas.width = window.innerWidth;
+             canvas.height = window.innerHeight;
+             ctx.fillStyle = '#0a0a2a'; 
+             ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    });
+
+    // 初始載入時的錯誤處理，如果圖片載入失敗，會顯示一個替代圓形
+    moonImage.onerror = () => {
+        console.error("無法載入月亮圖片。請檢查圖片路徑和檔案名。");
+        // 即使載入失敗也繼續，讓 game 邏輯可以跑
+        imagesLoaded++;
+        checkAllImagesLoaded();
+    };
+    companyLogo.onerror = () => {
+        console.error("無法載入公司 Logo 圖片。請檢查圖片路徑和檔案名。");
+        imagesLoaded++;
+        checkAllImagesLoaded();
+    };
+
+    // 確保所有圖片載入完成才開始遊戲
+    // 如果您沒有提供圖片，這個邏輯會阻塞，請務必提供圖片或移除圖片載入邏輯。
+</script>
+
+</body>
+</html>
